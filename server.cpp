@@ -31,7 +31,7 @@ int main() {
         buffer[bytesReceived] = '\0';
         std::cout << "Received: " << buffer << std::endl;
     }
-    const char* response = "Message received. Response from server.";
+    const char* response = "Message received. Response from server - pong";
     send(client_socket, response, strlen(response), 0);
     close(client_socket);
     close(server_socket);
