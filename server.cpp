@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -25,15 +25,31 @@ int main() {
     socklen_t client_addr_size = sizeof(client_ad);
     int client_socket = accept(server_socket, (sockaddr*)&client_ad, &client_addr_size);
     std::cout << "Client connect!" << std::endl;
-    char buffer[1024];
-    int bytesReceived = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
-    if (bytesReceived > 0) {
-        buffer[bytesReceived] = '\0';
-        std::cout << "Received: " << buffer << std::endl;
-    }
-    const char* response = "Message received. Response from server - pong";
-    send(client_socket, response, strlen(response), 0);
+	while(true)
+	{
+		char buffer[1024];
+		int bytesReceived = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+		buffer[bytesReceived] = '\0';
+		if (bytesReceived > 0) 
+        {
+			std::cout << "Received: " << buffer << std::endl;
+    	}
+		if(std::strcmp(buffer, "exit") == 0)
+		{
+			break;
+		}
+		if(std::strcmp(buffer, "ping") == 0)
+		{
+		    const char* response = "pong";
+        	send(client_socket, response, strlen(response), 0);
+			continue;
+		}
+		const char* response = "Message received. Response from server - pong";
+        send(client_socket, response, strlen(response), 0);
+	}
+    
     close(client_socket);
     close(server_socket);
     return 0;
 }
+
