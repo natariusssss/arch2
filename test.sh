@@ -5,9 +5,7 @@ CLIENT=./client
 PORT=1111
 LOG_SERVER=server.log
 
-###########################################
-# Ждём, пока сервер выведет "Wait client ..."
-###########################################
+
 wait_server_ready() {
     for i in {1..50}; do
         if grep -q "Wait client" "$LOG_SERVER" 2>/dev/null; then
@@ -18,9 +16,7 @@ wait_server_ready() {
     return 1
 }
 
-###########################################
-# Запуск сервера
-###########################################
+
 start_server() {
     rm -f "$LOG_SERVER"
     $SERVER >"$LOG_SERVER" 2>&1 &
@@ -33,18 +29,13 @@ start_server() {
     fi
 }
 
-###########################################
-# Остановка сервера (graceful exit)
-###########################################
 stop_server() {
     printf "exit" | nc 127.0.0.1 $PORT >/dev/null 2>&1
     sleep 0.2
     kill $SERVER_PID 2>/dev/null
 }
 
-###########################################
-# TEST 1 — ping → pong
-###########################################
+
 test_ping_pong() {
     echo "[TEST] ping → pong"
 
@@ -52,7 +43,7 @@ test_ping_pong() {
 
     OUTPUT=$(printf "ping\nexit\n" | $CLIENT 2>/dev/null)
 
-    echo "$OUTPUT" | grep -q "Received: pong"
+    echo "$OUTPUT" | grep -q "\[Server\]: pong"
     if [ $? -ne 0 ]; then
         echo "FAIL: expected pong"
         echo "$OUTPUT"
@@ -64,9 +55,7 @@ test_ping_pong() {
     stop_server
 }
 
-###########################################
-# TEST 2 — exit → сервер завершает работу
-###########################################
+
 test_exit_closes_server() {
     echo "[TEST] exit → server terminates"
 
@@ -83,12 +72,30 @@ test_exit_closes_server() {
 
     echo "PASS: server terminated correctly"
 }
+test_random_message() {
+    echo "[TEST] random message → default server reply"
 
-###########################################
-# RUN TESTS
-###########################################
+    start_server
+
+    OUTPUT=$(printf "hello\nexit\n" | $CLIENT 2>/dev/null)
+
+    echo "$OUTPUT" | grep -q "\[Server\]: Message received. Response from server - pong"
+    if [ $? -ne 0 ]; then
+        echo "FAIL: expected generic reply"
+        echo "$OUTPUT"
+        stop_server
+        exit 1
+    fi
+
+    echo "PASS: generic reply received"
+    stop_server
+}
+
+
 test_ping_pong
+test_random_message
 test_exit_closes_server
+
 
 echo
 echo "=============================="
