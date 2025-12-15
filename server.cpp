@@ -11,36 +11,31 @@
 #include <condition_variable>
 #include <functional>
 const int max_threads = 20;
-std::queue<std::string> messages;
+std::queue<std::pair<int, std::string>> msg_queue;
 std::vector<std::thread> client_threads;
 std::queue<int> client_queue;
 std::mutex queue_mutex;
+std::mutex msg_queue_mutex;
 std::condition_variable condition;
+std::condition_variable msg_cond;
 void handle_client(int client_socket)
 {
     while (true)
     {
         char buffer[1024];
         int bytesReceived = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+        if(bytesReceived == 0){ break; }
         buffer[bytesReceived] = '\0';
         if (bytesReceived > 0)
         {
             std::cout << "Received: " << buffer << std::endl;
         }
-        if (std::strcmp(buffer, "exit") == 0)
         {
-            break;
+            std::lock_guard<std::mutex> lock(msg_queue_mutex);
+            msg_queue.push(std::make_pair(client_socket, buffer));
         }
-        if (std::strcmp(buffer, "ping") == 0)
-        {
-            const char* response = "pong";
-            send(client_socket, response, strlen(response), 0);
-            continue;
-        }
-        const char* response = "Message received. Response from server - pong";
-        send(client_socket, response, strlen(response), 0);
+        msg_cond.notify_one();
     }
-    close(client_socket);
 }
 void worker_thread() 
 {
@@ -56,6 +51,33 @@ void worker_thread()
         }
         handle_client(client_socket);
     }
+}
+void Send_Messages()
+{
+    while (true)
+    {
+        std::pair<int, std::string> value;
+        {
+            std::unique_lock<std::mutex> lock(msg_queue_mutex);
+            msg_cond.wait(lock, [] {return !msg_queue.empty();});
+            value = std::move(msg_queue.front());
+            msg_queue.pop();
+        }
+        if (value.second == "exit")
+        {
+            close(value.first);
+        }
+        if (value.second == "ping")
+        {
+            const char* response = "pong";
+            send(value.first, response, strlen(response), 0);
+            continue;
+        }
+        const char* response = "Message received. Response from server - pong";
+        send(value.first, response, strlen(response), 0);
+    }
+    
+
 }
 int main() {
     sockaddr_in server_ad, client_ad;
@@ -74,6 +96,8 @@ int main() {
         close(server_socket);
         return 1;
     }
+    std::thread thread(Send_Messages);
+    thread.detach();
     for (size_t i = 0; i < max_threads; i++)
     {
         client_threads.emplace_back(worker_thread);
@@ -94,5 +118,6 @@ int main() {
     close(server_socket);
     return 0;
 }
+
 
 
