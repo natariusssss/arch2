@@ -66,8 +66,9 @@ void Send_Messages()
         }
         if (value.second == "exit")
         {
-            std::cout << "Exit command. Closing server..." << std::endl;
-            exit(0);
+            std::cout << "Client requested disconnect. Closing socket: " << value.first << std::endl;
+            close(value.first);
+            continue;
         }
         if (value.second == "ping")
         {
@@ -81,6 +82,7 @@ void Send_Messages()
         }
     }
 }
+
 int main() {
     sockaddr_in server_ad;
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -88,13 +90,13 @@ int main() {
     int opt = 1;
     setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     server_ad.sin_family = AF_INET;
-    server_ad.sin_addr.s_addr = INADDR_ANY; // Лучше принимать на всех интерфейсах
+    server_ad.sin_addr.s_addr = INADDR_ANY;
     server_ad.sin_port = htons(1111);
     if (bind(server_socket, (sockaddr*)&server_ad, sizeof(server_ad)) == -1) {
         die("ERROR: Bind failed");
     }
 
-    if (listen(server_socket, 10) == -1) { // Увеличили очередь ожидания до 10
+    if (listen(server_socket, 10) == -1) {
         die("ERROR: Listen failed");
     }
 
