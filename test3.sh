@@ -6,7 +6,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 print_section() {
     echo -e "\n${BLUE}▶ $1${NC}"
@@ -23,7 +23,7 @@ print_error() {
 cleanup() {
     echo -e "\n${YELLOW}Очистка...${NC}"
     pkill -f "./server" 2>/dev/null || true
-    rm -f server.log test_output.txt
+    rm -f server.log test_output.txt client*.log test_protocol test_protocol.cpp
 }
 
 cleanup
@@ -47,7 +47,6 @@ else
     exit 1
 fi
 
-# Базовые тесты
 print_section "2. БАЗОВЫЕ ТЕСТЫ"
 
 echo "Запуск сервера..."
@@ -86,7 +85,6 @@ if ps -p $SERVER_PID > /dev/null 2>&1; then
     print_error "Сервер не завершился по exit команде"
 else
     print_success "Exit команда работает"
-    # Перезапускаем сервер для следующих тестов
     ./server > server.log 2>&1 &
     SERVER_PID=$!
     sleep 2
